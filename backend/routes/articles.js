@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Article = require('../models/Article');
+const axios = require('axios');
+const cheerio = require('cheerio');
 
+// GET all articles with filtering
 router.get('/', async (req, res) => {
     try {
         const { type } = req.query;
@@ -16,6 +19,86 @@ router.get('/', async (req, res) => {
         res.json(articles);
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+// NEW: GET live original articles from BeyondChats (without saving to DB)
+router.get('/live-originals', async (req, res) => {
+    try {
+        console.log('🔍 Fetching live articles from BeyondChats...');
+
+        // Fetch the last page (oldest articles)
+        const { data: mainPageHtml } = await axios.get('https://beyondchats.com/blogs/');
+        const $ = cheerio.load(mainPageHtml);
+
+        // Find last page number
+        let lastPage = 1;
+        const pageLinks = $('a.page-numbers');
+        if (pageLinks.length > 0) {
+            const pageNumbers = [];
+            pageLinks.each((i, el) => {
+                const num = parseInt($(el).text());
+                if (!isNaN(num)) pageNumbers.push(num);
+            });
+            if (pageNumbers.length > 0) {
+                lastPage = Math.max(...pageNumbers);
+            }
+        }
+
+        console.log(`📄 Last page: ${lastPage}`);
+
+        // Scrape from last page
+        const articles = [];
+        let page = lastPage;
+
+        while (articles.length < 5 && page > 0) {
+            const targetUrl = `https://beyondchats.com/blogs/page/${page}/`;
+            const { data: pageHtml } = await axios.get(targetUrl);
+            const $page = cheerio.load(pageHtml);
+
+            let $container = $page('article');
+            if (!$container.length) $container = $page('.post');
+
+            $container.each((i, el) => {
+                if (articles.length >= 5) return;
+
+                const titleEl = $page(el).find('h2 a');
+                const title = titleEl.text().trim();
+                const originalUrl = titleEl.attr('href');
+
+                let content = $page(el).find('.entry-content').text().trim();
+                if (!content) content = $page(el).find('.post-excerpt').text().trim();
+                if (!content) content = $page(el).find('p').first().text().trim();
+
+                let dateStr = $page(el).find('.entry-date').text().trim() || $page(el).find('time').text().trim();
+                let date = dateStr ? new Date(dateStr) : new Date();
+                if (isNaN(date.getTime())) date = new Date();
+
+                if (title && originalUrl) {
+                    articles.push({
+                        _id: `live-${articles.length}`, // Temporary ID for frontend
+                        title,
+                        content,
+                        originalUrl,
+                        isUpdated: false,
+                        references: [],
+                        createdAt: date
+                    });
+                }
+            });
+
+            page--;
+        }
+
+        // Reverse to get oldest first
+        articles.reverse();
+
+        console.log(`✅ Fetched ${articles.length} live articles`);
+        res.json(articles.slice(0, 5));
+
+    } catch (err) {
+        console.error('❌ Error fetching live articles:', err.message);
+        res.status(500).json({ message: 'Failed to fetch live articles', error: err.message });
     }
 });
 

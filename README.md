@@ -6,10 +6,22 @@ This project is a 3-phase Full Stack solution that scrapes blogs, automates cont
 
 ## 🔗 Live Link
 > [!IMPORTANT]
-> **[INSERT YOUR LIVE FRONTEND LINK HERE]**
-> _(Please deploy the frontend to Vercel/Netlify and backend to Render/Railway, then paste the URL above)_
+> **[https://beyond-chat-amber.vercel.app/]**
+> _(The live deployment demonstrates both original and AI-enhanced articles fetched from the same backend APIs.)_
+
+## 🏗️ Architecture Diagram
+
+![System Architecture](./frontend/src/assets/flowchart.png)
+
 
 ---
+
+## 🧠 Architectural Decisions
+
+- Separated scraping and AI enhancement into independent scripts to keep backend APIs lightweight.
+- Used MongoDB flags (`isUpdated`) to track article lifecycle without duplicating records.
+- Designed the system to be LLM-provider agnostic, allowing easy switching between AI services.
+
 
 ## 🏗️ Architecture & Data Flow Diagram
 The following diagram provides a quick summary of the entire project's data flow and architecture.
@@ -26,7 +38,7 @@ graph TD
     BeyondChats[BeyondChats Blogs]
     Google[Google Search]
     ExtSites[External Articles]
-    LLM[LLM API\n(Gemini/OpenAI)]
+    LLM[LLM API\n(Groq)]
 
     %% Connections
     User -->|View & Interact| Frontend
@@ -48,10 +60,12 @@ graph TD
 ```
 
 ### 🛠️ Tech Stack
-- **Frontend**: React.js, Tailwind CSS v4, Lucide Icons, Axios.
-- **Backend**: Node.js, Express.js.
-- **Database**: MongoDB.
-- **Automation**: Puppeteer (Headless Browser), Cheerio (DOM Parsing).
+- **Frontend**: React.js, Tailwind CSS v3, Lucide Icons, Axios, Vite
+- **Backend**: Node.js, Express.js
+- **Database**: MongoDB (Atlas)
+- **AI/LLM**: Groq API (LLM-based content generation)
+- **Search**: SerpAPI (Google Search)
+- **Scraping**: Cheerio (HTML Parsing), Axios
 
 ---
 
@@ -76,10 +90,12 @@ cd BeyondChats
 2. Create a `.env` file in `backend/`:
    ```env
    PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/beyondchats_blog
-   # Optional Keys for Phase 2 (Script falls back to mock if missing)
-   SERP_API_KEY=your_serp_api_key
-   LLM_API_KEY=your_llm_api_key
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/beyondchats_blog
+   API_URL=http://localhost:5000/api/articles
+   
+   # Required for Phase 2 AI Enhancement
+   SERP_API_KEY=your_serpapi_key_here
+   GROQ_API_KEY=your_groq_api_key_here
    ```
 3. Run the scripts and server:
    ```bash
@@ -127,7 +143,45 @@ cd BeyondChats
 ```
 
 ## ✅ Features Implemented
-1. **Scraping**: Automated extraction of the oldest 5 articles from BeyondChats.com.
-2. **Database**: MongoDB storage with support for original and updated versions.
-3. **AI Automation**: Independent script to search, research, and rewrite content.
-4. **Responsive UI**: Clean, professional interface with "Original" and "AI Enhanced" tokens.
+1. **Live Original Articles**: Real-time fetching of the 5 oldest articles from BeyondChats.com without database storage.
+2. **AI Enhancement**: Automated content enhancement using Groq LLM with Google Search integration.
+3. **Database**: MongoDB storage for AI-enhanced articles with references.
+4. **Dual-Tab Interface**: 
+   - **Original Tab**: Displays live articles fetched directly from BeyondChats
+   - **AI Enhanced Tab**: Shows enhanced versions with citations from database
+5. **Responsive UI**: Modern component-based React interface with gradient designs and smooth animations.
+
+### 🔄 Complete Workflow Diagram
+
+```
+┌─────────────────────────────────────────────────────┐
+│  1. SCRAPE (scrapeInitial.js)                       │
+│     beyondchats.com → MongoDB                       │
+│     Result: 5 articles with isUpdated: false        │
+└──────────────────┬──────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────┐
+│  2. ENHANCE (updateArticles.js)                     │
+│     Google Search → Scrape refs → Groq LLM          │
+│     Result: 5 articles with isUpdated: true         │
+└──────────────────┬──────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────┐
+│  3. DISPLAY (React Frontend)                        │
+│     Original Tab: Live from BeyondChats (5 articles)│
+│     AI Enhanced Tab: From MongoDB (5 articles)      │
+└─────────────────────────────────────────────────────┘
+```
+
+### 📡 API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/articles/live-originals` | GET | Fetches 5 oldest articles live from BeyondChats |
+| `/api/articles?type=updated` | GET | Fetches AI-enhanced articles from database |
+| `/api/articles/:id` | GET | Get single article by ID |
+| `/api/articles` | POST | Create new article |
+| `/api/articles/:id` | PUT | Update existing article |
+| `/api/articles/:id` | DELETE | Delete article |
