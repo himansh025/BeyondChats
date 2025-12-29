@@ -23,41 +23,6 @@ This project is a 3-phase Full Stack solution that scrapes blogs, automates cont
 - Designed the system to be LLM-provider agnostic, allowing easy switching between AI services.
 
 
-## 🏗️ Architecture & Data Flow Diagram
-The following diagram provides a quick summary of the entire project's data flow and architecture.
-
-```mermaid
-graph TD
-    %% Nodes
-    User([User])
-    Frontend[React Frontend\n(Vite + Tailwind)]
-    Backend[Node.js Backend\n(Express)]
-    DB[(MongoDB)]
-    
-    %% External Services
-    BeyondChats[BeyondChats Blogs]
-    Google[Google Search]
-    ExtSites[External Articles]
-    LLM[LLM API\n(Groq)]
-
-    %% Connections
-    User -->|View & Interact| Frontend
-    Frontend -->|REST API Calls| Backend
-    Backend -->|CRUD Operations| DB
-
-    subgraph "Phase 1: Initial Scraping"
-        Script1[scrapeInitial.js] -->|Scrape Last 5| BeyondChats
-        Script1 -->|Store Data| DB
-    end
-
-    subgraph "Phase 2: AI Automation"
-        Script2[updateArticles.js] -->|Fetch Pending| Backend
-        Script2 -->|Search Topic| Google
-        Script2 -->|Scrape Content| ExtSites
-        Script2 -->|Generate Rewrite| LLM
-        Script2 -->|Update Article| Backend
-    end
-```
 
 ### 🛠️ Tech Stack
 - **Frontend**: React.js, Tailwind CSS v3, Lucide Icons, Axios, Vite
