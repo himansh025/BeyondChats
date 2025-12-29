@@ -77,13 +77,15 @@ function App() {
   const [selectedArticle, setSelectedArticle] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  const API_URL = import.meta.env.VITE_API_URL
+
   const fetchArticles = async (type) => {
     setLoading(true)
     try {
       // type for API is 'original' or 'updated'
       // My automation script updates articles in place (isUpdated=true), so I need to differentiate.
       // API supports ?type=original | updated
-      const { data } = await axios.get(`http://localhost:5000/articles?type=${type}`)
+      const { data } = await axios.get(`${API_URL}/articles?type=${type}`)
       setArticles(data)
     } catch (error) {
       console.error(error)
