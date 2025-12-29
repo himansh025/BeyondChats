@@ -1,30 +1,18 @@
 const mongoose = require('mongoose');
 
-const articleSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true
+const ArticleSchema = new mongoose.Schema({
+  title: String,
+  content: String,
+  originalUrl: String,
+  isUpdated: { type: Boolean, default: false },
+  references: [String],
+  updatedFrom: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Article',
+    default: null
   },
-  content: {
-    type: String,
-    required: true
-  },
-  originalUrl: {
-    type: String,
-    required: true
-  },
-  isUpdated: {
-    type: Boolean,
-    default: false
-  },
-  references: {
-    type: [String],
-    default: []
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+
+  createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Article', articleSchema);
+module.exports = mongoose.model('Article', ArticleSchema);
